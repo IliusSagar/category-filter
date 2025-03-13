@@ -4,18 +4,19 @@
 
 
 <div class="container">
-    <h2>Products</h2>
+    <h2>{{ $category->name }} Products</h2>
     
     <div class="row">
         <!-- Filter Sidebar -->
         <div class="col-md-3">
             <h4>Filters</h4>
-            <form id="filter-form">
-                <label>Category:</label><br>
-                @foreach($categories as $category)
-                    <input type="checkbox" name="categories[]" value="{{ $category->id }}"> {{ $category->name }}<br>
+            <form id="filter-form" data-slug="{{ $category->slug ?? '' }}">
+                <label>Filter by Category:</label><br>
+                @foreach($categories as $cat)
+                    <input type="checkbox" class="category-checkbox" name="categories[]" value="{{ $cat->id }}"> {{ $cat->name }}<br>
                 @endforeach
             </form>
+            
         </div>
 
         <!-- Products Section -->
@@ -28,40 +29,69 @@
                     </div>
                 @endforeach
             </div>
+            
+            <!-- Pagination -->
+            <div id="pagination-links">
+                {{ $products->links() }}
+            </div>
+            
         </div>
     </div>
 </div>
 
 
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+
 <script>
     $(document).ready(function() {
-        $('input[name="categories[]"]').on('change', function() {
+        $('.category-checkbox').on('change', function() {
             let selectedCategories = [];
-            $('input[name="categories[]"]:checked').each(function() {
+
+            $('.category-checkbox:checked').each(function() {
                 selectedCategories.push($(this).val());
             });
 
+            // Get the category slug from the form data attribute
+            let slug = $('#filter-form').data('slug');
+
+            if (!slug) {
+                alert("Category slug is missing!");
+                return;
+            }
+
             $.ajax({
-                url: "{{ route('products.filter') }}",
+                url: `/products/${slug}/filter`, // Use the slug dynamically
                 type: "GET",
-                data: { categories: selectedCategories },
+                data: { 'categories': selectedCategories }, 
+                dataType: "json",
                 success: function(response) {
                     let productsHtml = '';
-                    response.products.forEach(product => {
-                        productsHtml += `<div class="product">
-                            <h5>${product.name}</h5>
-                            <p>Price: ${product.price}</p>
-                        </div>`;
-                    });
+
+                    if (response.products.length > 0) {
+                        response.products.forEach(product => {
+                            productsHtml += `<div class="product">
+                                <h5>${product.name}</h5>
+                                <p>Price: ${product.price}</p>
+                            </div>`;
+                        });
+                    } else {
+                        productsHtml = "<p>No products found.</p>";
+                    }
 
                     $('#product-list').html(productsHtml);
+                    $('#pagination-links').html(response.pagination); // Update pagination links
+                },
+                error: function(xhr, status, error) {
+                    console.error(xhr.responseText);
+                    alert("Something went wrong! Check the console.");
                 }
             });
         });
     });
 </script>
+
 
 
 
