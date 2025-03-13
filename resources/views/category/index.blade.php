@@ -42,55 +42,69 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-
-
 <script>
-    $(document).ready(function() {
-        $('.category-checkbox').on('change', function() {
-            let selectedCategories = [];
+$(document).ready(function() {
+    $('.category-checkbox').on('change', function() {
+        let selectedCategories = [];
 
-            $('.category-checkbox:checked').each(function() {
-                selectedCategories.push($(this).val());
-            });
+        $('.category-checkbox:checked').each(function() {
+            selectedCategories.push($(this).val());
+        });
 
-            // Get the category slug from the form data attribute
-            let slug = $('#filter-form').data('slug');
+        let slug = $('#filter-form').data('slug');
 
-            if (!slug) {
-                alert("Category slug is missing!");
-                return;
-            }
+        if (!slug) {
+            alert("Category slug is missing!");
+            return;
+        }
 
-            $.ajax({
-                url: `/products/${slug}/filter`, // Use the slug dynamically
-                type: "GET",
-                data: { 'categories': selectedCategories }, 
-                dataType: "json",
-                success: function(response) {
-                    let productsHtml = '';
+        // ✅ Remove Old Data Immediately
+        $('#product-list').empty();
+        $('#pagination-links').empty();
 
-                    if (response.products.length > 0) {
-                        response.products.forEach(product => {
-                            productsHtml += `<div class="product">
+        // ✅ If no categories selected, show "No products" and stop
+        if (selectedCategories.length === 0) {
+            $('#product-list').html("<p>No products found.</p>");
+            return;
+        }
+
+        // ✅ Perform AJAX Request
+        $.ajax({
+            url: `/products/${slug}/filter`,
+            type: "GET",
+            data: { 'categories': selectedCategories }, 
+            dataType: "json",
+            beforeSend: function() {
+                $('#product-list').html("<p>Loading...</p>"); // Show loading state
+            },
+            success: function(response) {
+                let productsHtml = '';
+
+                if (response.products.length > 0) {
+                    response.products.forEach(product => {
+                        productsHtml += `
+                            <div class="product">
                                 <h5>${product.name}</h5>
                                 <p>Price: ${product.price}</p>
                             </div>`;
-                        });
-                    } else {
-                        productsHtml = "<p>No products found.</p>";
-                    }
-
-                    $('#product-list').html(productsHtml);
-                    $('#pagination-links').html(response.pagination); // Update pagination links
-                },
-                error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
-                    alert("Something went wrong! Check the console.");
+                    });
+                } else {
+                    productsHtml = "<p>No products found.</p>";
                 }
-            });
+
+                $('#product-list').html(productsHtml);
+                $('#pagination-links').html(response.pagination || "");
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", xhr.responseText);
+                alert("Something went wrong! Check the console.");
+            }
         });
     });
+});
+
 </script>
+
 
 
 
